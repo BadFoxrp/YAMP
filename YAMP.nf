@@ -139,17 +139,20 @@ if (params.qin != 33 && params.qin != 64) {
 	exit 1, "Input quality offset (qin) not available. Choose either 33 (ASCII+33) or 64 (ASCII+64)" 
 }   
 
+def missingReads1 = params.reads1 in [null, ""]
+def missingReads2 = params.reads2 in [null, ""]
+
 //--reads2 can be omitted when the library layout is "single" (indeed it specifies single-end
 //sequencing)
-if (params.mode != "characterisation" && !params.singleEnd && (params.reads2 == "null") ) {
-	exit 1, "If dealing with paired-end reads, please set the reads2 parameters\nif dealing with single-end reads, please set the library layout to 'single'"
+if (params.mode != "characterisation" && !params.singleEnd && missingReads2) {
+        exit 1, "If dealing with paired-end reads, please set the reads2 parameters\nif dealing with single-end reads, please set the library layout to 'single'"
 }
 
-//--reads1 and --reads2 can be omitted (and the default from the config file used instead) 
+//--reads1 and --reads2 can be omitted (and the default from the config file used instead)
 //only when mode is "characterisation". Obviously, --reads2 should be always omitted when the
 //library layout is single.
-if (params.mode != "characterisation" && ( (!params.singleEnd && (params.reads1 == "null" || params.reads2 == "null")) || (params.singleEnd && params.reads1 == "null")) ) {
-	exit 1, "Please set the reads1 and/or reads2 parameters"
+if (params.mode != "characterisation" && ( (!params.singleEnd && (missingReads1 || missingReads2)) || (params.singleEnd && missingReads1)) ) {
+        exit 1, "Please set the reads1 and/or reads2 parameters"
 }
 
 //Creates working dir
