@@ -14,10 +14,36 @@ process get_software_versions {
         container params.docker_container_biobakery
     }
 
-	output:
-	path("software_versions_mqc.yaml"), emit: software_versions_yaml
+        output:
+        path("software_versions_mqc.yaml"), emit: software_versions_yaml
 
-	script:
+        def containerEngine = workflow.containerEngine
+        def getContainerImage = { dockerParam, singularityParam ->
+                switch (containerEngine) {
+                        case 'docker':
+                                return dockerParam
+                        case 'singularity':
+                                return singularityParam
+                        default:
+                                return null
+                }
+        }
+
+        def extractVersion = { image ->
+                if (!image) {
+                        return 'N/A'
+                }
+
+                def idx = image.lastIndexOf(':')
+                return (idx != -1 && idx < image.size() - 1) ? image.substring(idx + 1) : 'N/A'
+        }
+
+        def fastqcVersion = extractVersion(getContainerImage(params.docker_container_fastqc, params.singularity_container_fastqc))
+        def bbmapVersion = extractVersion(getContainerImage(params.docker_container_bbmap, params.singularity_container_bbmap))
+        def qiimeVersion = extractVersion(getContainerImage(params.docker_container_qiime2, params.singularity_container_qiime2))
+        def multiqcVersion = extractVersion(getContainerImage(params.docker_container_multiqc, params.singularity_container_multiqc))
+
+        script:
 	//I am using a multi-containers scenarios, supporting docker and singularity
 	//with the software at a specific version (the same for all platforms). Therefore, I
 	//will simply parse the version from there. Perhaps overkill, but who cares?  
@@ -27,14 +53,14 @@ process get_software_versions {
 	echo $workflow.manifest.version > v_pipeline.txt
 	echo $workflow.nextflow.version > v_nextflow.txt
 
-	echo $params.docker_container_fastqc | cut -d: -f 2 > v_fastqc.txt
-	echo $params.docker_container_bbmap | cut -d: -f 2 > v_bbmap.txt
+        echo "${fastqcVersion}" > v_fastqc.txt
+        echo "${bbmapVersion}" > v_bbmap.txt
 	
 	metaphlan --version > v_metaphlan.txt
 	humann --version > v_humann.txt
-	echo $params.docker_container_qiime2 | cut -d: -f 2 > v_qiime.txt
-	
-	echo $params.docker_container_multiqc | cut -d: -f 2 > v_multiqc.txt
+        echo "${qiimeVersion}" > v_qiime.txt
+
+        echo "${multiqcVersion}" > v_multiqc.txt
 	
 	scrape_software_versions.py > software_versions_mqc.yaml
 	"""

@@ -200,41 +200,30 @@ summary['User name'] = System.getProperty("user.name") //User's account name
 summary['Container Engine'] = workflow.containerEngine
 if(workflow.containerEngine) summary['Container'] = workflow.container
 
-if (params.mode != "characterisation") 
+def containerSummaryValue = { dockerParam, singularityParam ->
+        switch (workflow.containerEngine) {
+                case 'docker':
+                        return dockerParam ?: 'No container information'
+                case 'singularity':
+                        return singularityParam ?: 'No container information'
+                default:
+                        return 'No container information'
+        }
+}
+
+if (params.mode != "characterisation")
 {
-	if (workflow.containerEngine == 'singularity') {
-	   	summary['BBmap'] = "https://depot.galaxyproject.org/singularity/bbmap:38.87--h1296035_0"
-		summary['FastQC'] = "https://depot.galaxyproject.org/singularity/fastqc:0.11.9--0"
-	} else if (workflow.containerEngine == 'docker') {
-    	summary['BBmap'] = "quay.io/biocontainers/bbmap:38.87--h1296035_0"
-		summary['FastQC'] = "quay.io/biocontainers/fastqc:0.11.9--0"
-	} else {
-		summary['BBmap'] = "No container information"
-		summary['FastQC'] = "No container information"
-	}
+        summary['BBmap'] = containerSummaryValue(params.docker_container_bbmap, params.singularity_container_bbmap)
+        summary['FastQC'] = containerSummaryValue(params.docker_container_fastqc, params.singularity_container_fastqc)
 }
 
 if (params.mode != "QC")
 {
-	if (workflow.containerEngine == 'singularity') {
-		summary['biobakery'] = "biobakery/workflows:3.0.0.a.6.metaphlanv3.0.7"
-		summary['qiime'] = "qiime2/core:2020.8"
-	} else if (workflow.containerEngine == 'docker') {
-		summary['biobakery'] = "biobakery/workflows:3.0.0.a.6.metaphlanv3.0.7"
-		summary['qiime'] = "qiime2/core:2020.8"
-	} else {
-		summary['biobakery'] = "No container information"
-		summary['qiime'] = "No container information"
-	}
+        summary['biobakery'] = containerSummaryValue(params.docker_container_biobakery, params.singularity_container_biobakery)
+        summary['qiime'] = containerSummaryValue(params.docker_container_qiime2, params.singularity_container_qiime2)
 }
 
-if (workflow.containerEngine == 'singularity') {
-	summary['MultiQC'] = "https://depot.galaxyproject.org/singularity/multiqc:1.9--py_1"
-} else if (workflow.containerEngine == 'docker') {
-	summary['MultiQC'] = "quay.io/biocontainers/multiqc:1.9--py_1"
-} else {
-	summary['MultiQC'] = "No container information"
-}
+summary['MultiQC'] = containerSummaryValue(params.docker_container_multiqc, params.singularity_container_multiqc)
 
 if(workflow.profile == 'awsbatch'){
 	summary['AWS Region'] = params.awsregion
